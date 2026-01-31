@@ -14,7 +14,7 @@ class MockData {
     ),
     Category(
       name: 'Bakery',
-      imageUrl: 'https://images.unsplash.com/photo-1555507036-ab1f40388085?w=400', // Artisan Bread
+      imageUrl: 'assets/images/categories/bakery.png',
       icon: '',
     ),
     Category(
@@ -24,12 +24,12 @@ class MockData {
     ),
     Category(
       name: 'Packaged',
-      imageUrl: 'https://images.unsplash.com/photo-1597405230983-4a11cd58e0a3?w=400', // Premium Pantry
+      imageUrl: 'assets/images/categories/packaged.png',
       icon: '',
     ),
     Category(
       name: 'Beverages',
-      imageUrl: 'https://images.unsplash.com/photo-1606774944901-57d603a11e15?w=400', // Fresh Juice
+      imageUrl: 'assets/images/categories/beverages.png',
       icon: '',
     ),
     Category(
@@ -39,7 +39,7 @@ class MockData {
     ),
     Category(
       name: 'Seafood',
-      imageUrl: 'https://images.unsplash.com/photo-1615141982880-1313d06a7d64?w=400', // Fresh Fish
+      imageUrl: 'assets/images/categories/seafood.png',
       icon: '',
     ),
     Category(

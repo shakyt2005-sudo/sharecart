@@ -95,11 +95,17 @@ class _HomeScreenState extends State<HomeScreen> {
                                         border: Border.all(color: AppColors.cardBorder.withOpacity(0.5)),
                                       ),
                                       child: ClipOval(
-                                        child: Image.network(
-                                          category.imageUrl,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported, color: AppColors.textSecondary),
-                                        ),
+                                        child: category.imageUrl.startsWith('assets/')
+                                          ? Image.asset(
+                                              category.imageUrl,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported, color: AppColors.textSecondary),
+                                            )
+                                          : Image.network(
+                                              category.imageUrl,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported, color: AppColors.textSecondary),
+                                            ),
                                       ),
                                     ),
                                     const SizedBox(height: 8),
@@ -268,7 +274,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       sliver: SliverList(
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {
-                            final item = provider.filteredItems[index];
+                            final item = provider.nearbyItems[index];
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 16),
                               child: ItemCard(
@@ -284,7 +290,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ).animate().fadeIn(delay: (50 * index).ms).slideY(begin: 0.1, end: 0);
                           },
-                          childCount: provider.filteredItems.length,
+                          childCount: provider.nearbyItems.length,
                         ),
                       ),
                     ),

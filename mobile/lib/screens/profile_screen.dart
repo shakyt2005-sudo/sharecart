@@ -201,9 +201,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       // Settings & Others
                       _buildOption(Icons.settings_outlined, "Settings", null),
                       _buildOption(Icons.help_outline, "Help & Support", null),
-                      _buildOption(Icons.logout, "Logout", () {
-                         // Logout logic
-                         // For now just restart app or clear provider
+                      _buildOption(Icons.logout, "Logout", () async {
+                        // Show confirmation dialog
+                        final shouldLogout = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Logout'),
+                            content: const Text('Are you sure you want to logout?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, false),
+                                child: const Text('Cancel'),
+                              ),
+                              ElevatedButton(
+                                onPressed: () => Navigator.pop(ctx, true),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.error,
+                                  foregroundColor: Colors.white,
+                                ),
+                                child: const Text('Logout'),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (shouldLogout == true && mounted) {
+                          // Show loading indicator
+                          showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (ctx) => const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+
+                          // Perform logout
+                          await provider.logout();
+
+                          // Close loading dialog
+                          if (mounted) {
+                            Navigator.pop(context);
+                          }
+
+                          // Navigation will be handled automatically by main.dart
+                          // which checks provider.currentUser and provider.isGuest
+                        }
                       }, isDestructive: true),
                     ],
                   ),

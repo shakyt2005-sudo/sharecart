@@ -54,6 +54,28 @@ class AppProvider with ChangeNotifier {
     }).toList();
   }
 
+  // Nearby Items (Exclude own posts)
+  List<Item> get nearbyItems {
+    final baseItems = _searchQuery.isEmpty ? _items : filteredItems;
+    
+    // If no user is logged in, return all items
+    if (_currentUser == null) return baseItems;
+    
+    // Filter out items posted by the current user
+    return baseItems.where((item) {
+      return item.vendor?.id != _currentUser?.id;
+    }).toList();
+  }
+
+  // My Products (Only user's own posts)
+  List<Item> get myProducts {
+    if (_currentUser == null) return [];
+    
+    return _items.where((item) {
+      return item.vendor?.id == _currentUser?.id;
+    }).toList();
+  }
+
   AppProvider() {
     // Initialize
     fetchItems();
@@ -130,6 +152,35 @@ class AppProvider with ChangeNotifier {
     } else {
       _loginGuest();
       return true;
+    }
+  }
+
+  // Logout method
+  Future<void> logout() async {
+    try {
+      // Sign out from Supabase if using it
+      if (_useSupabase) {
+        await _supabaseService.logout();
+      }
+      
+      // Reset all state
+      _currentUser = null;
+      _isGuest = false;
+      _items = [];
+      _bestSellers = [];
+      _searchQuery = '';
+      _showTutorial = true;
+      _tutorialStep = 0;
+      
+      notifyListeners();
+    } catch (e) {
+      print('Error during logout: $e');
+      // Even if there's an error, reset local state
+      _currentUser = null;
+      _isGuest = false;
+      _items = [];
+      _bestSellers = [];
+      notifyListeners();
     }
   }
 

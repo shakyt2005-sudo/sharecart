@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/colors.dart';
 import 'providers/app_provider.dart';
+import 'providers/chat_provider.dart';
 import 'screens/main_screen.dart';
 import 'screens/login_screen.dart';
 
@@ -19,6 +20,7 @@ Future<void> main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AppProvider()),
+        ChangeNotifierProvider(create: (_) => ChatProvider()),
       ],
       child: const ShareCartApp(),
     ),

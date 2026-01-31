@@ -22,6 +22,16 @@ class SupabaseService {
     }
   }
 
+  // Logout user
+  Future<void> logout() async {
+    try {
+      await _supabase.auth.signOut();
+    } catch (e) {
+      print('Error signing out: $e');
+      rethrow;
+    }
+  }
+
   // Create new item
   Future<bool> createItem({
     required String productName,
@@ -154,6 +164,44 @@ class SupabaseService {
           .toList();
     } catch (e) {
       print('Error fetching items by location: $e');
+      return [];
+    }
+  }
+
+  // Fetch nearby items excluding user's own posts
+  Future<List<Item>> fetchNearbyItemsExcludingUser(String location, String excludeVendorId) async {
+    try {
+      final response = await _supabase
+          .from('items')
+          .select('*, vendors!inner(*)')
+          .eq('status', 'available')
+          .neq('vendor_id', excludeVendorId)
+          .ilike('vendors.location', '%$location%')
+          .order('expiry_date', ascending: true);
+
+      return (response as List)
+          .map((item) => Item.fromSupabase(item))
+          .toList();
+    } catch (e) {
+      print('Error fetching nearby items: $e');
+      return [];
+    }
+  }
+
+  // Fetch items by vendor (for My Products)
+  Future<List<Item>> fetchItemsByVendor(String vendorId) async {
+    try {
+      final response = await _supabase
+          .from('items')
+          .select('*, vendors(*)')
+          .eq('vendor_id', vendorId)
+          .order('created_at', ascending: false);
+
+      return (response as List)
+          .map((item) => Item.fromSupabase(item))
+          .toList();
+    } catch (e) {
+      print('Error fetching items by vendor: $e');
       return [];
     }
   }

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../core/colors.dart';
 import '../models/models.dart';
+import '../providers/chat_provider.dart';
+import '../providers/app_provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -15,56 +18,80 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
-  final List<Message> _messages = []; // Local state for demo
   final ScrollController _scrollController = ScrollController();
+  bool _isInitialized = false;
   
   // Pre-typed Quick Replies
   final List<String> _quickReplies = [
     "Is this still available?",
     "I'd like to negotiate the price.",
-    "Can pick up today.",
-    "What's the expiry date?",
-    "I'll take the full quantity."
+    "Can I pick it up today?",
+    "What quantity is available?",
   ];
 
   @override
   void initState() {
     super.initState();
-    // Add initial system message or greeting
-    _messages.add(Message(
-      id: '0',
-      text: "Hi! I'm interested in ${widget.item.productName}.",
-      isMe: true,
-      timestamp: DateTime.now().subtract(const Duration(minutes: 1)),
-    ));
-    _messages.add(Message(
-      id: '1',
-      text: "Hello! Yes, it's available. How much do you need?",
-      isMe: false,
-      timestamp: DateTime.now(),
-    ));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeChat();
+    });
   }
 
-  void _sendMessage(String text) {
+  Future<void> _initializeChat() async {
+    final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+    final appProvider = Provider.of<AppProvider>(context, listen: false);
+    
+    if (appProvider.currentUser == null) return;
+
+    // Open or create conversation
+    await chatProvider.openConversation(
+      buyerId: appProvider.currentUser!.id,
+      sellerId: widget.vendor.id,
+      productId: widget.item.id,
+      productName: widget.item.productName,
+    );
+
+    // Auto-insert first message if conversation is new (no messages)
+    if (chatProvider.currentMessages.isEmpty && !_isInitialized) {
+      _messageController.text = "Hi, I'm interested in ${widget.item.productName}.";
+      _isInitialized = true;
+    }
+
+    _scrollToBottom();
+  }
+
+  void _sendMessage() async {
+    final text = _messageController.text.trim();
     if (text.isEmpty) return;
-    
-    setState(() {
-      _messages.add(Message(
-        id: DateTime.now().toString(),
-        text: text,
-        isMe: true,
-        timestamp: DateTime.now(),
-      ));
-    });
-    
-    _messageController.clear();
-    _scrollToBottom();
 
-    
-    _messageController.clear();
-    _scrollToBottom();
+    final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+    final appProvider = Provider.of<AppProvider>(context, listen: false);
 
-    // No auto-reply, real chat Logic handled by backend subscription in future
+    if (appProvider.currentUser == null) return;
+
+    // Send message
+    final success = await chatProvider.sendMessage(
+      messageText: text,
+      senderId: appProvider.currentUser!.id,
+      receiverId: widget.vendor.id,
+    );
+
+    if (success) {
+      _messageController.clear();
+      _scrollToBottom();
+    } else {
+      // Show error
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to send message')),
+        );
+      }
+    }
+  }
+
+  void _insertQuickReply(String text) {
+    _messageController.text = text;
+    // Don't send automatically - user can edit before sending
   }
 
   void _scrollToBottom() {
@@ -80,7 +107,17 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   @override
+  void dispose() {
+    _messageController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final appProvider = Provider.of<AppProvider>(context);
+    final currentUserId = appProvider.currentUser?.id ?? '';
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -91,15 +128,33 @@ class _ChatScreenState extends State<ChatScreen> {
           children: [
             CircleAvatar(
               backgroundColor: AppColors.primary.withOpacity(0.1),
-              child: Text(widget.vendor.shopName[0], style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+              child: Text(
+                widget.vendor.shopName[0],
+                style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+              ),
             ),
             const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(widget.vendor.shopName, style: const TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
-                Text("Typically replies in 5m", style: TextStyle(color: AppColors.textSecondary.withOpacity(0.8), fontSize: 12)),
-              ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.vendor.shopName,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    widget.vendor.location,
+                    style: TextStyle(
+                      color: AppColors.textSecondary.withOpacity(0.8),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -133,12 +188,26 @@ class _ChatScreenState extends State<ChatScreen> {
                     child: const Icon(Icons.inventory_2_outlined, color: AppColors.primary),
                   ),
                   const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(widget.item.productName, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-                      Text("${widget.item.quantity} • ${widget.vendor.shopName}", style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                    ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.item.productName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          "${widget.item.quantity} • ${widget.vendor.shopName}",
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -147,36 +216,93 @@ class _ChatScreenState extends State<ChatScreen> {
 
           // Messages
           Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(16),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final msg = _messages[index];
-                return Align(
-                  alignment: msg.isMe ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-                    decoration: BoxDecoration(
-                      color: msg.isMe ? AppColors.primary : Colors.white,
-                      borderRadius: BorderRadius.only(
-                        topLeft: const Radius.circular(16),
-                        topRight: const Radius.circular(16),
-                        bottomLeft: msg.isMe ? const Radius.circular(16) : Radius.zero,
-                        bottomRight: msg.isMe ? Radius.zero : const Radius.circular(16),
-                      ),
-                      boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2)),
+            child: Consumer<ChatProvider>(
+              builder: (context, chatProvider, _) {
+                if (chatProvider.isLoading && chatProvider.currentMessages.isEmpty) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (chatProvider.currentMessages.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.chat_bubble_outline,
+                          size: 64,
+                          color: AppColors.textSecondary.withOpacity(0.3),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Start the conversation',
+                          style: TextStyle(
+                            color: AppColors.textSecondary.withOpacity(0.7),
+                            fontSize: 16,
+                          ),
+                        ),
                       ],
                     ),
-                    child: Text(
-                      msg.text,
-                      style: TextStyle(color: msg.isMe ? Colors.white : AppColors.textPrimary, fontSize: 15),
-                    ),
-                  ),
-                ).animate().fade(duration: 300.ms).slideY(begin: 0.2, end: 0);
+                  );
+                }
+
+                return ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.all(16),
+                  itemCount: chatProvider.currentMessages.length,
+                  itemBuilder: (context, index) {
+                    final msg = chatProvider.currentMessages[index];
+                    final isMe = msg.senderId == currentUserId;
+
+                    return Align(
+                      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        constraints: BoxConstraints(
+                          maxWidth: MediaQuery.of(context).size.width * 0.75,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isMe ? AppColors.primary : Colors.white,
+                          borderRadius: BorderRadius.only(
+                            topLeft: const Radius.circular(16),
+                            topRight: const Radius.circular(16),
+                            bottomLeft: isMe ? const Radius.circular(16) : Radius.zero,
+                            bottomRight: isMe ? Radius.zero : const Radius.circular(16),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              msg.messageText,
+                              style: TextStyle(
+                                color: isMe ? Colors.white : AppColors.textPrimary,
+                                fontSize: 15,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _formatTime(msg.createdAt),
+                              style: TextStyle(
+                                color: isMe 
+                                    ? Colors.white.withOpacity(0.7)
+                                    : AppColors.textSecondary,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ).animate().fade(duration: 300.ms).slideY(begin: 0.2, end: 0);
+                  },
+                );
               },
             ),
           ),
@@ -194,12 +320,16 @@ class _ChatScreenState extends State<ChatScreen> {
                   child: ActionChip(
                     label: Text(_quickReplies[index]),
                     backgroundColor: AppColors.background,
-                    labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
+                    labelStyle: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
                       side: const BorderSide(color: AppColors.cardBorder),
                     ),
-                    onPressed: () => _sendMessage(_quickReplies[index]),
+                    onPressed: () => _insertQuickReply(_quickReplies[index]),
                   ),
                 );
               },
@@ -208,7 +338,7 @@ class _ChatScreenState extends State<ChatScreen> {
           
           // Input Area
           Container(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 32), // Safe area bottom
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
             decoration: const BoxDecoration(
               color: Colors.white,
               border: Border(top: BorderSide(color: AppColors.cardBorder)),
@@ -219,7 +349,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   child: TextField(
                     controller: _messageController,
                     decoration: InputDecoration(
-                      hintText: "Type a detailed message...",
+                      hintText: "Type a message...",
                       hintStyle: const TextStyle(color: AppColors.textSecondary),
                       filled: true,
                       fillColor: AppColors.background,
@@ -227,15 +357,19 @@ class _ChatScreenState extends State<ChatScreen> {
                         borderRadius: BorderRadius.circular(24),
                         borderSide: BorderSide.none,
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
                     ),
-                    onSubmitted: _sendMessage,
+                    onSubmitted: (_) => _sendMessage(),
+                    maxLines: null,
                   ),
                 ),
                 const SizedBox(width: 12),
                 FloatingActionButton(
                   mini: true,
-                  onPressed: () => _sendMessage(_messageController.text),
+                  onPressed: _sendMessage,
                   backgroundColor: AppColors.secondary,
                   elevation: 2,
                   child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
@@ -247,14 +381,19 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
   }
-}
 
-// Simple local model for Chat UI
-class Message {
-  final String id;
-  final String text;
-  final bool isMe;
-  final DateTime timestamp;
+  String _formatTime(DateTime dateTime) {
+    final now = DateTime.now();
+    final diff = now.difference(dateTime);
 
-  Message({required this.id, required this.text, required this.isMe, required this.timestamp});
+    if (diff.inDays > 0) {
+      return '${diff.inDays}d ago';
+    } else if (diff.inHours > 0) {
+      return '${diff.inHours}h ago';
+    } else if (diff.inMinutes > 0) {
+      return '${diff.inMinutes}m ago';
+    } else {
+      return 'Just now';
+    }
+  }
 }

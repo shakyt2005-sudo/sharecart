@@ -3,6 +3,8 @@ import '../core/colors.dart';
 import 'home_screen.dart';
 import 'create_item_screen.dart';
 import 'profile_screen.dart';
+import 'my_products_screen.dart';
+import 'chat_inbox_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({Key? key}) : super(key: key);
@@ -16,36 +18,41 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _screens = [
     const HomeScreen(),
-    const Center(child: Text('Saved Items (Coming Soon)', style: TextStyle(fontSize: 16, color: AppColors.textSecondary))),
+    const MyProductsScreen(),
+    const ChatInboxScreen(),
     const CreateItemScreen(),
     const ProfileScreen(),
   ];
 
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _screens,
-      ),
+      body: _screens[_selectedIndex],
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))
-          ]
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
         ),
         child: BottomNavigationBar(
           currentIndex: _selectedIndex,
-          onTap: (index) {
-            setState(() => _selectedIndex = index);
-          },
+          onTap: _onItemTapped,
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
           selectedItemColor: AppColors.primary,
-          unselectedItemColor: Colors.grey,
-          showUnselectedLabels: true,
-          selectedLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-          unselectedLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+          unselectedItemColor: AppColors.textSecondary,
+          selectedFontSize: 12,
+          unselectedFontSize: 12,
           items: const [
             BottomNavigationBarItem(
               icon: Icon(Icons.home_outlined),
@@ -53,17 +60,19 @@ class _MainScreenState extends State<MainScreen> {
               label: 'Home',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.favorite_border),
-              activeIcon: Icon(Icons.favorite),
-              label: 'Saved',
+              icon: Icon(Icons.inventory_2_outlined),
+              activeIcon: Icon(Icons.inventory_2),
+              label: 'My Products',
             ),
             BottomNavigationBarItem(
-              icon: CircleAvatar(
-                radius: 20,
-                backgroundColor: AppColors.secondary,
-                child: Icon(Icons.add, color: Colors.white),
-              ),
-              label: 'Share',
+              icon: Icon(Icons.chat_bubble_outline),
+              activeIcon: Icon(Icons.chat_bubble),
+              label: 'Chat',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.add_circle_outline),
+              activeIcon: Icon(Icons.add_circle),
+              label: 'Create',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
