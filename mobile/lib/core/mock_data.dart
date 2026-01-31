@@ -4,33 +4,48 @@ class MockData {
   static final List<Category> categories = [
     Category(
       name: 'Vegetables',
-      imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=200',
-      icon: '🥬',
+      imageUrl: 'https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?w=400', // Premium Veggies
+      icon: '',
     ),
     Category(
       name: 'Fruits',
-      imageUrl: 'https://images.unsplash.com/photo-1619566636858-adf3ef46400b?w=200',
-      icon: '🍎',
+      imageUrl: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=400', // Fresh Fruits
+      icon: '',
     ),
     Category(
       name: 'Bakery',
-      imageUrl: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=200',
-      icon: '🍞',
+      imageUrl: 'https://images.unsplash.com/photo-1555507036-ab1f40388085?w=400', // Artisan Bread
+      icon: '',
     ),
     Category(
       name: 'Dairy',
-      imageUrl: 'https://images.unsplash.com/photo-1563636619-e9143da7973b?w=200',
-      icon: '🥛',
+      imageUrl: 'https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=400', // Gourmet Cheese
+      icon: '',
     ),
     Category(
       name: 'Packaged',
-      imageUrl: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=200',
-      icon: '📦',
+      imageUrl: 'https://images.unsplash.com/photo-1597405230983-4a11cd58e0a3?w=400', // Premium Pantry
+      icon: '',
     ),
     Category(
       name: 'Beverages',
-      imageUrl: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?w=200',
-      icon: '🥤',
+      imageUrl: 'https://images.unsplash.com/photo-1606774944901-57d603a11e15?w=400', // Fresh Juice
+      icon: '',
+    ),
+    Category(
+      name: 'Meat',
+      imageUrl: 'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=400', // Fresh Meat
+      icon: '',
+    ),
+    Category(
+      name: 'Seafood',
+      imageUrl: 'https://images.unsplash.com/photo-1615141982880-1313d06a7d64?w=400', // Fresh Fish
+      icon: '',
+    ),
+    Category(
+      name: 'Grains',
+      imageUrl: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400', // Wheat/Grains
+      icon: '',
     ),
   ];
 

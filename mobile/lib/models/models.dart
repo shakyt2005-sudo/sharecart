@@ -21,17 +21,23 @@ class Vendor {
 
   bool get isBestSeller => totalSales > 50;
 
-  factory Vendor.fromJson(Map<String, dynamic> json) {
+  // From Supabase
+  factory Vendor.fromSupabase(Map<String, dynamic> json) {
     return Vendor(
-      id: json['_id'] ?? '',
-      shopName: json['shopName'] ?? '',
+      id: json['id'] ?? '',
+      shopName: json['shop_name'] ?? '',
       type: json['type'] ?? '',
       phone: json['phone'] ?? '',
       rating: (json['rating'] ?? 0.0).toDouble(),
-      isVerified: json['isVerified'] ?? false,
+      isVerified: json['is_verified'] ?? false,
       location: json['location'] ?? 'Chennai',
-      totalSales: json['totalSales'] ?? 0,
+      totalSales: json['total_sales'] ?? 0,
     );
+  }
+
+  // Legacy fromJson for backward compatibility
+  factory Vendor.fromJson(Map<String, dynamic> json) {
+    return Vendor.fromSupabase(json);
   }
 }
 
@@ -42,6 +48,7 @@ class Item {
   final DateTime expiryDate;
   final Vendor? vendor;
   final String status;
+  final String? category;
 
   Item({
     required this.id,
@@ -50,19 +57,27 @@ class Item {
     required this.expiryDate,
     this.vendor,
     required this.status,
+    this.category,
   });
 
-  factory Item.fromJson(Map<String, dynamic> json) {
+  // From Supabase
+  factory Item.fromSupabase(Map<String, dynamic> json) {
     return Item(
-      id: json['_id'] ?? '',
-      productName: json['productName'] ?? '',
+      id: json['id'] ?? '',
+      productName: json['product_name'] ?? '',
       quantity: json['quantity'] ?? '',
-      expiryDate: DateTime.parse(json['expiryDate']),
-      vendor: json['vendor'] != null && json['vendor'] is Map<String, dynamic> 
-          ? Vendor.fromJson(json['vendor']) 
+      expiryDate: DateTime.parse(json['expiry_date']),
+      vendor: json['vendors'] != null && json['vendors'] is Map<String, dynamic>
+          ? Vendor.fromSupabase(json['vendors'])
           : null,
       status: json['status'] ?? 'available',
+      category: json['category'],
     );
+  }
+
+  // Legacy fromJson for backward compatibility
+  factory Item.fromJson(Map<String, dynamic> json) {
+    return Item.fromSupabase(json);
   }
 }
 

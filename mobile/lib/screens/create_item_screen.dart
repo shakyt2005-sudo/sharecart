@@ -20,6 +20,8 @@ class _CreateItemScreenState extends State<CreateItemScreen> with SingleTickerPr
   final _qtyController = TextEditingController();
   DateTime _expiryDate = DateTime.now().add(const Duration(days: 3));
   String? _selectedCategory;
+  String _selectedUnit = 'kg'; // Default unit
+  final List<String> _units = ['kg', 'liters', 'pieces', 'boxes', 'packets'];
   bool _isSubmitting = false;
   late AnimationController _animController;
 
@@ -312,10 +314,49 @@ class _CreateItemScreenState extends State<CreateItemScreen> with SingleTickerPr
                           // Quantity
                           _buildSectionLabel('Quantity', Icons.scale_rounded),
                           const SizedBox(height: 12),
-                          _buildModernTextField(
-                            controller: _qtyController,
-                            hint: 'e.g., 50 kg or 100 pieces',
-                            icon: Icons.numbers_rounded,
+                          Row(
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: _buildModernTextField(
+                                  controller: _qtyController,
+                                  hint: 'e.g., 50',
+                                  icon: Icons.numbers_rounded,
+                                  isNumeric: true,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                flex: 1,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: Colors.grey.shade300),
+                                  ),
+                                  child: DropdownButtonHideUnderline(
+                                    child: DropdownButton<String>(
+                                      value: _selectedUnit,
+                                      isExpanded: true,
+                                      icon: const Icon(Icons.arrow_drop_down, color: AppColors.primary),
+                                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                                      items: _units.map((String value) {
+                                        return DropdownMenuItem<String>(
+                                          value: value,
+                                          child: Text(value),
+                                        );
+                                      }).toList(),
+                                      onChanged: (newValue) {
+                                        setState(() {
+                                          _selectedUnit = newValue!;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ).animate().fadeIn(delay: 200.ms),
 
                           const SizedBox(height: 24),
@@ -401,6 +442,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> with SingleTickerPr
                                         _nameController.text,
                                         _qtyController.text,
                                         _expiryDate,
+                                        category: _selectedCategory,
                                       );
 
                                       setState(() => _isSubmitting = false);
@@ -510,6 +552,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> with SingleTickerPr
     required TextEditingController controller,
     required String hint,
     required IconData icon,
+    bool isNumeric = false,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -527,6 +570,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> with SingleTickerPr
       child: TextField(
         controller: controller,
         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        keyboardType: isNumeric ? TextInputType.number : TextInputType.text,
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: TextStyle(color: Colors.grey.shade400, fontWeight: FontWeight.normal),

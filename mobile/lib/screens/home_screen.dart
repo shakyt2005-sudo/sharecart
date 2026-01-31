@@ -5,8 +5,10 @@ import '../core/colors.dart';
 import '../core/mock_data.dart';
 import '../widgets/item_card.dart';
 import '../widgets/tutorial_overlay.dart';
-import '../widgets/subscription_popup.dart';
+import '../widgets/item_details_dialog.dart';
 import 'category_detail_screen.dart';
+import 'ranking_screen.dart';
+import 'vendor_profile_screen.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -34,28 +36,29 @@ class _HomeScreenState extends State<HomeScreen> {
             Scaffold(
               backgroundColor: AppColors.background,
               body: SafeArea(
+                bottom: false,
                 child: CustomScrollView(
                   slivers: [
-                    // Custom App Bar with Search
+                    // Professional Header
                     SliverPersistentHeader(
                       floating: true,
                       delegate: _HomeHeaderDelegate(),
                     ),
                     
-                    // Categories with Images
+                    // Categories (Clean Style)
                     const SliverToBoxAdapter(
                       child: Padding(
-                        padding: EdgeInsets.only(top: 16, left: 16, bottom: 8),
+                        padding: EdgeInsets.fromLTRB(20, 24, 20, 16),
                         child: Text(
-                          "Browse Categories",
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                          "Categories",
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                         ),
                       ),
                     ),
                     
                     SliverToBoxAdapter(
                       child: SizedBox(
-                        height: 120,
+                        height: 110,
                         child: ListView.builder(
                           scrollDirection: Axis.horizontal,
                           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -72,69 +75,70 @@ class _HomeScreenState extends State<HomeScreen> {
                                 );
                               },
                               child: Container(
-                                width: 100,
+                                width: 85,
                                 margin: const EdgeInsets.only(right: 12),
                                 child: Column(
                                   children: [
                                     Container(
-                                      width: 80,
-                                      height: 80,
+                                      width: 70,
+                                      height: 70,
                                       decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(16),
+                                        color: Colors.white,
+                                        shape: BoxShape.circle,
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.black.withOpacity(0.1),
-                                            blurRadius: 8,
-                                            offset: const Offset(0, 2),
+                                            color: AppColors.primary.withOpacity(0.06),
+                                            blurRadius: 10,
+                                            offset: const Offset(0, 4),
                                           ),
                                         ],
+                                        border: Border.all(color: AppColors.cardBorder.withOpacity(0.5)),
                                       ),
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(16),
+                                      child: ClipOval(
                                         child: Image.network(
                                           category.imageUrl,
                                           fit: BoxFit.cover,
-                                          errorBuilder: (context, error, stackTrace) {
-                                            return Container(
-                                              color: AppColors.primaryLight,
-                                              child: Center(
-                                                child: Text(
-                                                  category.icon,
-                                                  style: const TextStyle(fontSize: 32),
-                                                ),
-                                              ),
-                                            );
-                                          },
+                                          errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported, color: AppColors.textSecondary),
                                         ),
                                       ),
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
                                       category.name,
-                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
                                       textAlign: TextAlign.center,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ],
                                 ),
-                              ).animate().fadeIn(delay: (50 * index).ms).slideX(),
+                              ).animate().fadeIn(delay: (50 * index).ms).slideX(begin: 0.1, end: 0),
                             );
                           },
                         ),
                       ),
                     ),
 
-                    // Best Sellers Section
-                    const SliverToBoxAdapter(
+                    // Best Sellers (Clean List)
+                    SliverToBoxAdapter(
                       child: Padding(
-                        padding: EdgeInsets.only(top: 20, left: 16, bottom: 12),
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
                         child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Icon(Icons.emoji_events, color: AppColors.gold, size: 24),
-                            SizedBox(width: 8),
-                            Text(
-                              "Best Sellers",
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                            const Text(
+                              "Top Rated Sellers",
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                             ),
+                            TextButton( // Clickable to see full ranking
+                              onPressed: () {
+                                 Navigator.push(
+                                   context,
+                                   MaterialPageRoute(builder: (context) => const RankingScreen()),
+                                 );
+                              },
+                              child: const Text("View All", style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.w600)),
+                            )
                           ],
                         ),
                       ),
@@ -142,116 +146,116 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     SliverToBoxAdapter(
                       child: SizedBox(
-                        height: 140,
+                        height: 150,
                         child: ListView.builder(
                           scrollDirection: Axis.horizontal,
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           itemCount: MockData.bestSellers.length,
                           itemBuilder: (context, index) {
                             final vendor = MockData.bestSellers[index];
-                            return Container(
-                              width: 200,
-                              margin: const EdgeInsets.only(right: 12),
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
-                                    blurRadius: 10,
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Container(
-                                        width: 40,
-                                        height: 40,
-                                        decoration: BoxDecoration(
-                                          color: AppColors.primaryLight,
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Center(
-                                          child: Text(
-                                            vendor.shopName[0],
-                                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                                          ),
-                                        ),
+                            return GestureDetector( // Make clickable
+                              onTap: () {
+                                 Navigator.push(
+                                   context,
+                                   MaterialPageRoute(builder: (context) => VendorProfileScreen(vendor: vendor)),
+                                 );
+                              },
+                              child: Container(
+                                width: 240,
+                                margin: const EdgeInsets.only(right: 16),
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: AppColors.cardBorder),
+                                  boxShadow: const [
+                                    BoxShadow(color: Color(0x08000000), blurRadius: 12, offset: Offset(0, 4)),
+                                  ],
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 50,
+                                      height: 50,
+                                      decoration: BoxDecoration(
+                                        color: AppColors.background,
+                                        borderRadius: BorderRadius.circular(12),
                                       ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                Expanded(
-                                                  child: Text(
-                                                    vendor.shopName,
-                                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                                                    overflow: TextOverflow.ellipsis,
-                                                  ),
-                                                ),
-                                                if (vendor.isVerified)
-                                                  const Icon(Icons.verified, color: AppColors.verified, size: 14),
-                                              ],
-                                            ),
-                                            Row(
-                                              children: [
-                                                const Icon(Icons.star, color: AppColors.gold, size: 12),
-                                                const SizedBox(width: 2),
-                                                Text('${vendor.rating}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.location_on, size: 12, color: AppColors.textSecondary),
-                                      const SizedBox(width: 4),
-                                      Expanded(
+                                      child: Center(
                                         child: Text(
-                                          vendor.location,
-                                          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                                          overflow: TextOverflow.ellipsis,
+                                          vendor.shopName[0],
+                                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primary),
                                         ),
                                       ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '${vendor.totalSales} successful trades',
-                                    style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                                  ),
-                                ],
-                              ),
-                            ).animate().fadeIn(delay: (100 * index).ms);
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            vendor.shopName,
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Row(
+                                            children: [
+                                              const Icon(Icons.star_rounded, color: AppColors.warning, size: 16),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                '${vendor.rating} • ${vendor.type}',
+                                                style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.success.withOpacity(0.1),
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              '${vendor.totalSales} Sales',
+                                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.success),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ).animate().fadeIn(delay: (100 * index).ms).slideX(),
+                            );
                           },
                         ),
                       ),
                     ),
 
-                    // Nearby Sellers
+                    // Nearby Header
                     SliverToBoxAdapter(
                       child: Padding(
-                        padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 12),
+                        padding: const EdgeInsets.fromLTRB(20, 32, 20, 16),
                         child: Row(
                           children: [
-                            const Icon(Icons.near_me, color: AppColors.secondary, size: 20),
-                            const SizedBox(width: 8),
-                            Consumer<AppProvider>(
-                              builder: (context, provider, _) => Text(
-                                "Near ${provider.currentUser?.location ?? 'You'}",
-                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                            Container(
+                               padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withOpacity(0.05),
+                                shape: BoxShape.circle,
                               ),
+                              child: const Icon(Icons.near_me_outlined, color: AppColors.primary, size: 18),
+                            ),
+                            const SizedBox(width: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text("Nearby Surplus", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                                Text("Fresh deals near ${provider.currentUser?.location ?? 'You'}", style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                              ],
                             ),
                           ],
                         ),
@@ -264,76 +268,45 @@ class _HomeScreenState extends State<HomeScreen> {
                       sliver: SliverList(
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {
-                            final item = provider.items[index];
-                            return ItemCard(
-                              item: item,
-                              onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Contact ${item.vendor?.shopName} for ${item.productName}'),
-                                    action: SnackBarAction(label: 'Chat', onPressed: () {}),
-                                  ),
-                                );
-                              },
-                            ).animate().fadeIn(delay: (50 * index).ms).slideX();
+                            final item = provider.filteredItems[index];
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: ItemCard(
+                                item: item,
+                                onTap: () {
+                                  showModalBottomSheet(
+                                    context: context,
+                                    isScrollControlled: true,
+                                    backgroundColor: Colors.transparent,
+                                    builder: (context) => ItemDetailsDialog(item: item),
+                                  );
+                                },
+                              ),
+                            ).animate().fadeIn(delay: (50 * index).ms).slideY(begin: 0.1, end: 0);
                           },
-                          childCount: provider.items.length,
+                          childCount: provider.filteredItems.length,
                         ),
                       ),
                     ),
                     
-                    const SliverToBoxAdapter(child: SizedBox(height: 80)),
+                    const SliverToBoxAdapter(child: SizedBox(height: 100)),
                   ],
                 ),
               ),
             ),
             
-            // Tutorial Overlays
             if (provider.showTutorial && provider.currentPage == 'home')
               TutorialOverlay(
-                text: _getTutorialText(provider.tutorialStep),
-                targetPosition: _getTutorialPos(context, provider.tutorialStep),
+                text: "Browse verified sellers and grab surplus deals instantly.",
+                targetPosition: Offset(MediaQuery.of(context).size.width / 2, 200),
                 isVisible: true,
                 onNext: provider.nextTutorial,
                 onSkip: provider.skipTutorial,
-              ),
-
-            // Subscription Popup
-            if (provider.shouldShowSubscriptionPopup)
-              SubscriptionPopup(
-                onDismiss: provider.dismissSubscriptionPopup,
-                onSubscribe: () {
-                  provider.subscribe();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Thank you for subscribing!')),
-                  );
-                },
               ),
           ],
         );
       },
     );
-  }
-
-  String _getTutorialText(int step) {
-    switch (step) {
-      case 0: return "Welcome! Use the search bar to find specific items quickly.";
-      case 1: return "Browse by category - tap any image to filter items.";
-      case 2: return "Check out our Best Sellers - vendors with proven track records!";
-      case 3: return "Items are sorted by urgency. Red = expires soon!";
-      default: return "";
-    }
-  }
-
-  Offset _getTutorialPos(BuildContext context, int step) {
-    final size = MediaQuery.of(context).size;
-    switch (step) {
-      case 0: return Offset(size.width * 0.5, 100);
-      case 1: return Offset(size.width * 0.3, 200);
-      case 2: return Offset(size.width * 0.5, 380);
-      case 3: return Offset(size.width * 0.5, size.height * 0.6);
-      default: return Offset(size.width / 2, size.height / 2);
-    }
   }
 }
 
@@ -341,44 +314,49 @@ class _HomeHeaderDelegate extends SliverPersistentHeaderDelegate {
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Container(
-      color: AppColors.primary,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      color: Colors.white, // Clean white header
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: SafeArea(
+        bottom: false,
         child: Column(
           children: [
             Row(
               children: [
-                const Icon(Icons.location_on, color: Colors.white, size: 16),
-                const SizedBox(width: 4),
-                const Text("Delivering to ", style: TextStyle(color: Colors.white70, fontSize: 12)),
-                Consumer<AppProvider>(
-                  builder: (context, provider, _) => Text(
-                    provider.currentUser?.location ?? "Chennai",
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                Expanded(
+                  child: Container(
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppColors.cardBorder),
+                    ),
+                    child: TextField(
+                      onChanged: (value) => Provider.of<AppProvider>(context, listen: false).setSearchQuery(value),
+                      decoration: const InputDecoration(
+                        hintText: "Search items, sellers...",
+                        hintStyle: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                        prefixIcon: Icon(Icons.search, color: AppColors.textSecondary, size: 22),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
                   ),
                 ),
-                const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-                  onPressed: () {},
+                const SizedBox(width: 12),
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppColors.cardBorder),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.tune_rounded, color: AppColors.textPrimary),
+                    onPressed: () {},
+                  ),
                 ),
               ],
-            ),
-            const SizedBox(height: 12),
-            Container(
-              height: 45,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const TextField(
-                decoration: InputDecoration(
-                  hintText: "Search surplus items...",
-                  prefixIcon: Icon(Icons.search, color: Colors.grey),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(vertical: 12),
-                ),
-              ),
             ),
           ],
         ),
@@ -387,10 +365,10 @@ class _HomeHeaderDelegate extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  double get maxExtent => 130;
+  double get maxExtent => 80;
 
   @override
-  double get minExtent => 130;
+  double get minExtent => 80;
 
   @override
   bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) => false;

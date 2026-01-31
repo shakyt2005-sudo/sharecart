@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import '../models/models.dart';
 import '../core/mock_data.dart';
+import '../services/supabase_service.dart';
 
 class AppProvider with ChangeNotifier {
+  final _supabaseService = SupabaseService();
   
   // User State
   Vendor? _currentUser;
   
   // Data State
   List<Item> _items = [];
+  List<Vendor> _bestSellers = [];
   bool _isLoading = false;
+  bool _useSupabase = true; // Use Supabase by default (was false)
 
   // Tutorial State
   bool _showTutorial = true;
@@ -22,59 +26,214 @@ class AppProvider with ChangeNotifier {
 
   Vendor? get currentUser => _currentUser;
   List<Item> get items => _items;
+  List<Vendor> get bestSellers => _bestSellers;
   bool get isLoading => _isLoading;
   bool get showTutorial => _showTutorial;
   int get tutorialStep => _tutorialStep;
   String get currentPage => _currentPage;
   bool get shouldShowSubscriptionPopup => _showSubscriptionPopup;
+  bool get useSupabase => _useSupabase;
+
+  // Search State
+  String _searchQuery = '';
+  String get searchQuery => _searchQuery;
+
+  void setSearchQuery(String query) {
+    _searchQuery = query;
+    notifyListeners();
+  }
+
+  // Live Filtered Items
+  List<Item> get filteredItems {
+    if (_searchQuery.isEmpty) return _items;
+    return _items.where((item) {
+      final q = _searchQuery.toLowerCase();
+      return item.productName.toLowerCase().contains(q) ||
+             (item.vendor?.shopName.toLowerCase() ?? '').contains(q) ||
+             (item.category?.toLowerCase() ?? '').contains(q);
+    }).toList();
+  }
 
   AppProvider() {
-    // Auto-init "Guest" Login
-    _loginGuest();
+    // Initialize
     fetchItems();
     _checkSubscriptionPopup();
   }
 
-  void _loginGuest() {
-    _currentUser = MockData.vendors[0]; // Use a real vendor from mock data
+  // Role Management
+  bool _isGuest = false;
+  bool get isGuest => _isGuest;
+
+  // Login as Guest (Client-side only)
+  void loginAsGuest() {
+    _isGuest = true;
+    _currentUser = null; // No profile for guests
     notifyListeners();
   }
 
-  Future<bool> login(String phone, String shopName, String type) async {
-    _loginGuest();
+  // Check if action is allowed (returns true if allowed, false if blocked)
+  bool checkActionAllowed(BuildContext context) {
+    if (_isGuest) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Login Required'),
+          content: const Text('Please create an account to chat or buy items.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                // navigate to login if possible, or just dismiss
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return false;
+    }
     return true;
+  }
+
+  // Temporary "Guest" login mostly for dev testing
+  void _loginGuest() {
+    loginAsGuest();
+  }
+
+  // Toggle between Supabase and Mock data
+  void toggleSupabase(bool value) {
+    _useSupabase = value;
+    fetchItems();
+    notifyListeners();
+  }
+
+  Future<bool> login(String phone, String name, String role) async {
+    if (_useSupabase) {
+      // For now, simpler login
+      // In a real app we'd map 'name' and 'role' to the profile
+      final vendor = await _supabaseService.createOrGetVendor(
+        phone: phone,
+        shopName: name, // Using name as shopName/identifier
+        type: role == 'Vendor' ? 'Grocery' : 'User', // Defaulting for simple demo
+      );
+      
+      if (vendor != null) {
+        _currentUser = vendor;
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } else {
+      _loginGuest();
+      return true;
+    }
   }
 
   Future<void> fetchItems() async {
     _isLoading = true;
     notifyListeners();
     
-    await Future.delayed(const Duration(milliseconds: 800));
+    if (_useSupabase) {
+      try {
+        // Fetch from Supabase
+        _items = await _supabaseService.fetchItems();
+        _bestSellers = await _supabaseService.fetchBestSellers();
+        
+        // If no data in Supabase, use mock data as fallback
+        if (_items.isEmpty) {
+          print('No items in Supabase, using mock data');
+          _items = List.from(MockData.items);
+          _bestSellers = MockData.bestSellers;
+        }
+      } catch (e) {
+        print('Error fetching from Supabase: $e');
+        // Fallback to mock data on error
+        _items = List.from(MockData.items);
+        _bestSellers = MockData.bestSellers;
+      }
+    } else {
+      // Use mock data
+      await Future.delayed(const Duration(milliseconds: 800));
+      _items = List.from(MockData.items);
+      _bestSellers = MockData.bestSellers;
+    }
     
-    _items = List.from(MockData.items);
     _isLoading = false;
     notifyListeners();
   }
 
-  Future<bool> createItem(String productName, String quantity, DateTime expiryDate) async {
+  Future<bool> createItem(String productName, String quantity, DateTime expiryDate, {String? category}) async {
+    if (_currentUser == null) return false;
+    
     _isLoading = true;
     notifyListeners();
     
-    await Future.delayed(const Duration(milliseconds: 1000));
+    bool success = false;
     
-    final newItem = Item(
-      id: DateTime.now().toString(),
-      productName: productName,
-      quantity: quantity,
-      expiryDate: expiryDate,
-      vendor: _currentUser,
-      status: 'available'
-    );
+    if (_useSupabase) {
+      try {
+        // Create in Supabase
+        success = await _supabaseService.createItem(
+          productName: productName,
+          quantity: quantity,
+          expiryDate: expiryDate,
+          vendorId: _currentUser!.id,
+          category: category,
+        );
+        
+        if (success) {
+          await fetchItems(); // Refresh list
+        }
+      } catch (e) {
+        print('Error creating item in Supabase: $e');
+        success = false;
+      }
+    } else {
+      // Mock creation
+      await Future.delayed(const Duration(milliseconds: 1000));
+      
+      final newItem = Item(
+        id: DateTime.now().toString(),
+        productName: productName,
+        quantity: quantity,
+        expiryDate: expiryDate,
+        vendor: _currentUser,
+        status: 'available',
+        category: category,
+      );
+      
+      _items.insert(0, newItem);
+      success = true;
+    }
     
-    _items.insert(0, newItem);
     _isLoading = false;
     notifyListeners();
-    return true;
+    return success;
+  }
+
+  Future<List<Item>> fetchItemsByCategory(String category) async {
+    if (_useSupabase) {
+      return await _supabaseService.fetchItemsByCategory(category);
+    } else {
+      // Filter mock data
+      return _items.where((item) {
+        final productLower = item.productName.toLowerCase();
+        final categoryLower = category.toLowerCase();
+        
+        if (categoryLower.contains('vegetable')) {
+          return productLower.contains('carrot') || productLower.contains('tomato');
+        } else if (categoryLower.contains('bakery')) {
+          return productLower.contains('bread') || productLower.contains('donut');
+        } else if (categoryLower.contains('dairy')) {
+          return productLower.contains('milk') || productLower.contains('cheese');
+        }
+        return true;
+      }).toList();
+    }
   }
   
   // Tutorial Logic

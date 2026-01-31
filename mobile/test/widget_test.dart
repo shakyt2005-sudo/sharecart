@@ -6,6 +6,7 @@ import 'package:mobile/providers/app_provider.dart';
 
 void main() {
   testWidgets('App smoke test', (WidgetTester tester) async {
+    // Build our app without Supabase for testing
     await tester.pumpWidget(
       MultiProvider(
         providers: [

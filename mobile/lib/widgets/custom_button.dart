@@ -3,33 +3,35 @@ import '../core/colors.dart';
 
 class CustomButton extends StatelessWidget {
   final String text;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final bool isLoading;
   final bool isSecondary;
 
   const CustomButton({
     Key? key,
     required this.text,
-    required this.onPressed,
+    this.onPressed,
     this.isLoading = false,
     this.isSecondary = false,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    bool isDisabled = onPressed == null || isLoading;
+    
     return Container(
       width: double.infinity,
       height: 56,
       decoration: BoxDecoration(
-        gradient: isSecondary ? null : const LinearGradient(
+        gradient: (isSecondary || isDisabled) ? null : const LinearGradient(
           colors: [AppColors.secondary, AppColors.primary],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        color: isSecondary ? Colors.white : null,
-        border: isSecondary ? Border.all(color: AppColors.primary, width: 2) : null,
+        color: isDisabled ? Colors.grey.shade300 : (isSecondary ? Colors.white : null),
+        border: isSecondary && !isDisabled ? Border.all(color: AppColors.primary, width: 2) : null,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: isSecondary ? null : [
+        boxShadow: (isSecondary || isDisabled) ? null : [
           BoxShadow(
             color: AppColors.primary.withOpacity(0.3),
             blurRadius: 10,
@@ -40,7 +42,7 @@ class CustomButton extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: isLoading ? null : onPressed,
+          onTap: isDisabled ? null : onPressed,
           borderRadius: BorderRadius.circular(16),
           child: Center(
             child: isLoading
@@ -48,7 +50,7 @@ class CustomButton extends StatelessWidget {
                 : Text(
                     text,
                     style: TextStyle(
-                      color: isSecondary ? AppColors.primary : Colors.white,
+                      color: isDisabled ? Colors.white : (isSecondary ? AppColors.primary : Colors.white),
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 0.5,

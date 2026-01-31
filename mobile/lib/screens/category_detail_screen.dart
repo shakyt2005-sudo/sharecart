@@ -4,6 +4,7 @@ import '../providers/app_provider.dart';
 import '../core/colors.dart';
 import '../models/models.dart';
 import '../widgets/item_card.dart';
+import '../widgets/item_details_dialog.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class CategoryDetailScreen extends StatelessWidget {
@@ -19,13 +20,14 @@ class CategoryDetailScreen extends StatelessWidget {
         slivers: [
           // App Bar with Image
           SliverAppBar(
-            expandedHeight: 200,
+            expandedHeight: 180,
             pinned: true,
             backgroundColor: AppColors.primary,
+            iconTheme: const IconThemeData(color: Colors.white),
             flexibleSpace: FlexibleSpaceBar(
               title: Text(
                 category.name,
-                style: const TextStyle(fontWeight: FontWeight.bold, shadows: [
+                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, shadows: [
                   Shadow(color: Colors.black45, blurRadius: 4)
                 ]),
               ),
@@ -37,7 +39,7 @@ class CategoryDetailScreen extends StatelessWidget {
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
                       return Container(
-                        color: AppColors.primaryLight,
+                        color: AppColors.primary,
                         child: Center(
                           child: Text(category.icon, style: const TextStyle(fontSize: 64)),
                         ),
@@ -51,7 +53,7 @@ class CategoryDetailScreen extends StatelessWidget {
                         end: Alignment.bottomCenter,
                         colors: [
                           Colors.transparent,
-                          Colors.black.withOpacity(0.7),
+                          Colors.black.withOpacity(0.6),
                         ],
                       ),
                     ),
@@ -68,33 +70,53 @@ class CategoryDetailScreen extends StatelessWidget {
               builder: (context, provider, child) {
                 // Filter items by category (simplified - matching product names)
                 final categoryItems = provider.items.where((item) {
-                  // Simple category matching logic
                   final productLower = item.productName.toLowerCase();
                   final categoryLower = category.name.toLowerCase();
                   
+                  // More robust matching could be done here or in backend
                   if (categoryLower.contains('vegetable')) {
+                    if (item.category == 'Vegetables') return true;
                     return productLower.contains('carrot') || productLower.contains('tomato') || productLower.contains('spinach');
-                  } else if (categoryLower.contains('bakery')) {
+                  } 
+                  if (categoryLower.contains('bakery')) {
+                    if (item.category == 'Bakery') return true;
                     return productLower.contains('bread') || productLower.contains('donut') || productLower.contains('cake');
-                  } else if (categoryLower.contains('dairy')) {
-                    return productLower.contains('milk') || productLower.contains('cheese') || productLower.contains('butter');
-                  } else if (categoryLower.contains('packaged')) {
-                    return productLower.contains('can') || productLower.contains('bean') || productLower.contains('packet');
                   }
-                  return true; // Show all for other categories
+                  if (categoryLower.contains('dairy')) {
+                    if (item.category == 'Dairy') return true;
+                    return productLower.contains('milk') || productLower.contains('cheese') || productLower.contains('butter');
+                  }
+                  // Default search match
+                  return item.category == category.name; 
                 }).toList();
 
                 if (categoryItems.isEmpty) {
                   return SliverFillRemaining(
+                    hasScrollBody: false,
                     child: Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(category.icon, style: const TextStyle(fontSize: 64)),
+                          Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4)),
+                              ]
+                            ),
+                            child: const Icon(Icons.search_off, size: 48, color: AppColors.textSecondary),
+                          ),
                           const SizedBox(height: 16),
                           const Text(
-                            'No items in this category yet',
-                            style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
+                            'No items found',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Try looking in other categories',
+                            style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
                           ),
                         ],
                       ),
@@ -106,16 +128,19 @@ class CategoryDetailScreen extends StatelessWidget {
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
                       final item = categoryItems[index];
-                      return ItemCard(
-                        item: item,
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Contact ${item.vendor?.shopName} for ${item.productName}'),
-                              action: SnackBarAction(label: 'Chat', onPressed: () {}),
-                            ),
-                          );
-                        },
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: ItemCard(
+                          item: item,
+                          onTap: () {
+                             showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                backgroundColor: Colors.transparent,
+                                builder: (context) => ItemDetailsDialog(item: item),
+                              );
+                          },
+                        ),
                       ).animate().fadeIn(delay: (50 * index).ms).slideX();
                     },
                     childCount: categoryItems.length,

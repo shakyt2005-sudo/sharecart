@@ -1,231 +1,248 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
 import '../providers/app_provider.dart';
 import '../core/colors.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('My Profile'),
-        backgroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: Consumer<AppProvider>(
-        builder: (context, provider, child) {
-          final vendor = provider.currentUser;
-          if (vendor == null) return const Center(child: Text('No user data'));
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Profile Header
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 70,
-                        height: 70,
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryLight,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: Text(
-                            vendor.shopName[0].toUpperCase(),
-                            style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white),
-                          ),
-                        ),
+class _ProfileScreenState extends State<ProfileScreen> {
+  final ImagePicker _picker = ImagePicker();
+  bool _isUploading = false;
+  
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<AppProvider>(context, listen: false).setCurrentPage('profile');
+    });
+  }
+
+  Future<void> _uploadLicense() async {
+    // Mock or Real Upload Logic
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      setState(() => _isUploading = true);
+      
+      // Simulate network upload
+      await Future.delayed(const Duration(seconds: 2));
+      
+      setState(() => _isUploading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('License uploaded successfully! Pending verification.')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AppProvider>(
+      builder: (context, provider, child) {
+        final user = provider.currentUser;
+        
+        if (user == null && !provider.isGuest) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          body: CustomScrollView(
+            slivers: [
+              // Profile Header
+              SliverAppBar(
+                expandedHeight: 200,
+                pinned: true,
+                backgroundColor: AppColors.primary,
+                flexibleSpace: FlexibleSpaceBar(
+                  background: Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [AppColors.primary, AppColors.primaryDark],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Text(
-                                  vendor.shopName,
-                                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                                ),
-                                if (vendor.isVerified) ...[
-                                  const SizedBox(width: 8),
-                                  const Icon(Icons.verified, color: AppColors.verified, size: 20),
-                                ],
-                              ],
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(height: 40),
+                          Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 3),
+                              boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 10)],
                             ),
-                            const SizedBox(height: 4),
-                            Text(vendor.type, style: const TextStyle(color: AppColors.textSecondary)),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                const Icon(Icons.star, color: AppColors.gold, size: 16),
-                                const SizedBox(width: 4),
-                                Text('${vendor.rating}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                                const SizedBox(width: 8),
-                                Text('${vendor.totalSales} sales', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-                              ],
+                            child: Center(
+                              child: Text(
+                                user?.shopName[0] ?? 'G',
+                                style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppColors.primary),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            user?.shopName ?? 'Guest User',
+                            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                          Text(
+                            user?.location ?? 'Location Unknown',
+                            style: const TextStyle(color: Colors.white70, fontSize: 14),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      // Stats Card (If Vendor)
+                      if (user != null)
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          margin: const EdgeInsets.only(bottom: 20),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 5))],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              _buildStat('4.8', 'Rating', Icons.star, AppColors.warning),
+                              _buildLine(),
+                              _buildStat('12', 'Items', Icons.inventory_2, AppColors.secondary),
+                              _buildLine(),
+                              _buildStat('125', 'Sales', Icons.verified, AppColors.success),
+                            ],
+                          ),
+                        ).animate().slideY(begin: 0.1, end: 0),
+
+                      // Subscription Card
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(colors: [Color(0xFF2C3E50), Color(0xFF000000)]), // Premium Dark
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 5))],
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFD700).withOpacity(0.2),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.workspace_premium, color: Color(0xFFFFD700), size: 30),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: const [
+                                  Text("Upgrade to Premium", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                                  Text("Free Trial • Then ₹499/mo", style: TextStyle(color: Colors.white70, fontSize: 13)),
+                                ],
+                              ),
+                            ),
+                            ElevatedButton(
+                              onPressed: () {},
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFFFD700),
+                                foregroundColor: Colors.black,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                              child: const Text("Upgrade"),
                             ),
                           ],
                         ),
-                      ),
-                    ],
-                  ),
-                ),
+                      ).animate().fadeIn(delay: 200.ms),
 
-                const SizedBox(height: 20),
+                      const SizedBox(height: 20),
 
-                // License Verification Section
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            vendor.isVerified ? Icons.check_circle : Icons.pending,
-                            color: vendor.isVerified ? AppColors.success : AppColors.warning,
+                      // License Upload
+                      if (user != null)
+                        ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          tileColor: Colors.white,
+                          leading: Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), shape: BoxShape.circle),
+                            child: const Icon(Icons.file_upload_outlined, color: AppColors.primary),
                           ),
-                          const SizedBox(width: 12),
-                          const Text(
-                            'Shop License Verification',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        vendor.isVerified
-                            ? 'Your shop is verified! Customers trust you more.'
-                            : 'Upload your shop license to gain customer trust and unlock premium features.',
-                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
-                      ),
-                      const SizedBox(height: 16),
-                      if (!vendor.isVerified)
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('License upload feature coming soon!')),
-                              );
-                            },
-                            icon: const Icon(Icons.upload_file),
-                            label: const Text('Upload License'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                          ),
+                          title: const Text("Upload Food License", style: TextStyle(fontWeight: FontWeight.w600)),
+                          subtitle: const Text("Required for verification", style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                          trailing: _isUploading 
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                            : const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.textSecondary),
+                          onTap: _isUploading ? null : _uploadLicense,
                         ),
-                    ],
-                  ),
-                ),
 
-                const SizedBox(height: 20),
-
-                // Subscription Status
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [AppColors.primaryLight, AppColors.primary],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Row(
-                        children: [
-                          Icon(Icons.workspace_premium, color: Colors.white),
-                          SizedBox(width: 12),
-                          Text(
-                            'Subscription Status',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                          ),
-                        ],
-                      ),
                       const SizedBox(height: 12),
-                      const Text(
-                        'Free Trial - 5 days remaining',
-                        style: TextStyle(color: Colors.white, fontSize: 14),
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            provider.showSubscriptionPopup();
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: AppColors.primary,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          child: const Text('Upgrade Now'),
-                        ),
-                      ),
+
+                      // Settings & Others
+                      _buildOption(Icons.settings_outlined, "Settings", null),
+                      _buildOption(Icons.help_outline, "Help & Support", null),
+                      _buildOption(Icons.logout, "Logout", () {
+                         // Logout logic
+                         // For now just restart app or clear provider
+                      }, isDestructive: true),
                     ],
                   ),
                 ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
-                const SizedBox(height: 20),
-
-                // Location
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Row(
-                        children: [
-                          Icon(Icons.location_on, color: AppColors.secondary),
-                          SizedBox(width: 12),
-                          Text(
-                            'Shop Location',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        vendor.location,
-                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
+  Widget _buildOption(IconData icon, String title, VoidCallback? onTap, {bool isDestructive = false}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+         color: Colors.white,
+         borderRadius: BorderRadius.circular(16),
+         border: Border.all(color: AppColors.cardBorder.withOpacity(0.5)),
+      ),
+      child: ListTile(
+        onTap: onTap,
+        leading: Icon(icon, color: isDestructive ? AppColors.error : AppColors.textSecondary),
+        title: Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: isDestructive ? AppColors.error : AppColors.textPrimary)),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.textSecondary),
       ),
     );
   }
+
+  Widget _buildStat(String value, String label, IconData icon, Color color) {
+    return Column(
+      children: [
+        Icon(icon, color: color, size: 24),
+        const SizedBox(height: 4),
+        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+      ],
+    );
+  }
+
+  Widget _buildLine() => Container(height: 30, width: 1, color: AppColors.cardBorder);
 }
